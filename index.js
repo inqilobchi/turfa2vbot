@@ -1,4 +1,5 @@
 require('dotenv').config();
+const axios = require('axios');
 const Fastify = require('fastify');
 const fastify = Fastify({ logger: true });
 const TelegramBot = require('node-telegram-bot-api');
