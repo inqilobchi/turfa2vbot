@@ -286,10 +286,10 @@ async function referalMenu(userId) {
 }
 const userSelections = new Map();
 const gifts = {
-  '15stars_heart' : {title : '💝', price : 15},
-  '15stars_bear': {title : '🧸', price : 15},
-  '25stars_rose' : {title : '🌹', price : 25},
-  '25stars_gift' : {title : '🎁', price : 25}
+  '15stars_heart' : {title : '💝', price : 25},
+  '15stars_bear': {title : '🧸', price : 25},
+  '25stars_rose' : {title : '🌹', price : 35},
+  '25stars_gift' : {title : '🎁', price : 35}
 }
 bot.onText(/\/start(?: (\d+))?/, async (msg, match) => {
   const chatId = msg.chat.id;
