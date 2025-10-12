@@ -124,18 +124,132 @@ async function getSubscriptionMessage() {
 }
 
 
+async function showNumberPage(chatId, messageId, userId, userSelections) {
+  const selections = userSelections.get(userId);
+  if (!selections) {
+    console.error('❌ userSelections topilmadi');
+    return;
+  }
+
+  const { allNumbers, receiveNumbers, currentPage, pageSize, totalPages } = selections;
+  const startIdx = currentPage * pageSize;
+  const endIdx = Math.min(startIdx + pageSize, allNumbers.length);
+  const pageNumbers = allNumbers.slice(startIdx, endIdx);
+
+  if (pageNumbers.length === 0) {
+    return bot.editMessageText('❌ Bu sahifada raqamlar yo\'q.', {
+      chat_id: chatId,
+      message_id: messageId
+    });
+  }
+
+  // Ikki ustunli keyboard yaratish (har qatorda 2 ta raqam)
+  const buttons = [];
+  for (let i = 0; i < pageNumbers.length; i += 2) {  // Har ikkitasini bir qatorga
+    const row = [];
+    
+    // Birinchi raqam (chap ustun)
+    const item1 = pageNumbers[i];
+    let siteLabel1 = item1.site === receiveSite ? '' : '';
+    if (currentPage === 0 && item1.site === receiveSite) {
+      siteLabel1 = '';  // Birinchi sahifada receive ni belgilash
+    }
+    row.push({ 
+      text: `${item1.phone} ${siteLabel1}`, 
+      callback_data: `select_number_${item1.site === receiveSite ? 'receive' : '7sim'}_${startIdx + i}` 
+    });
+
+    // Ikkinchi raqam (o'ng ustun, agar mavjud bo'lsa)
+    if (i + 1 < pageNumbers.length) {
+      const item2 = pageNumbers[i + 1];
+      let siteLabel2 = item2.site === receiveSite ? '' : '';
+      if (currentPage === 0 && item2.site === receiveSite) {
+        siteLabel2 = '';
+      }
+      row.push({ 
+        text: `${item2.phone} ${siteLabel2}`, 
+        callback_data: `select_number_${item2.site === receiveSite ? 'receive' : '7sim'}_${startIdx + i + 1}` 
+      });
+    } else {
+      row.push({ text: '—', callback_data: null });  // Bo'sh joy
+    }
+
+    buttons.push(row);
+  }
+
+  // Pagination tugmalari
+  const paginationRow = [];
+  if (currentPage > 0) {
+    paginationRow.push({ text: '⬅️ Oldingi', callback_data: 'prev_page' });
+  }
+  paginationRow.push({ text: '🛎 Orqaga', callback_data: 'back_to_main' });
+  if (currentPage < totalPages - 1 && allNumbers.length > pageSize) {
+    paginationRow.push({ text: '➡️ Keyingi', callback_data: 'next_page' });
+  }
+
+  if (paginationRow.length > 1 || (paginationRow.length === 1 && paginationRow[0].callback_data !== 'back_to_main')) {
+    buttons.push(paginationRow);
+  } else {
+    buttons.push([{ text: '🛎 Orqaga', callback_data: 'back_to_main' }]);
+  }
+
+  // Matn: Sahifa ma'lumoti
+  let siteInfo;
+  if (currentPage === 0) {
+    siteInfo = `📱 Raqamni tanlang (Sahifa ${currentPage + 1}/${totalPages}):`;
+  } else {
+    siteInfo = `📱 Raqamni tanlang (Sahifa ${currentPage + 1}/${totalPages}):`;
+  }
+
+  return bot.editMessageText(siteInfo, {
+    chat_id: chatId,
+    message_id: messageId,
+    parse_mode: 'HTML',
+    reply_markup: { inline_keyboard: buttons.filter(row => row.some(btn => btn.callback_data !== null)) }  
+  });
+}
+
 const receiveSite = 'https://receive-sms-online.info';
+const sevenSimSite = 'https://7sim.net';
 const PHONE_RE = /(\+?\d[\d\-\s()]{6,}\d)/g;
 const timeoutOptions = { timeout: 15000 };
 
 async function fetchHtml(url) {
   try {
-    const res = await fetch(url, { ...timeoutOptions, redirect: 'follow' });
-    return await res.text();
+    const res = await fetch(url, { 
+      ...timeoutOptions, 
+      redirect: 'follow',
+      headers: { 
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }  
+    });
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+    const html = await res.text();
+    // console.log(`✅ ${url} dan HTML yuklandi (uzunlik: ${html.length})`);
+    return html;
   } catch (err) {
     console.error('fetchHtml error', url, err && err.message);
     throw err;
   }
+}
+function parseMessagesGeneric(html) {
+  const $ = cheerio.load(html);
+  const messages = [];
+  $('#messages > div.message').each((i, el) => {
+    const $el = $(el);
+    const text = $el.text().replace(/\s+/g, ' ').trim();
+    if (text) messages.push({ text });
+  });
+  return messages;
+}
+function filterPhone(phone, site) {
+  if (site === sevenSimSite && phone.startsWith('+46')) {
+    console.log(`🚫 +46 raqam filtrlandi: ${phone}`);
+    return false;  
+  }
+  return true;
 }
 
 async function scrapeSite(url) {
@@ -143,6 +257,8 @@ async function scrapeSite(url) {
     const html = await fetchHtml(url);
     const $ = cheerio.load(html);
     const results = [];
+
+    console.log(`🔍 Receive saytda 'a' elementlar soni: ${$('a').length}`);
 
     $('a').each((i, el) => {
       const $el = $(el);
@@ -158,7 +274,10 @@ async function scrapeSite(url) {
 
       for (const m of matches) {
         const phone = m.replace(/[^\d+]/g, '');
-        results.push({ site: url, phone, href });
+        if (filterPhone(phone, url)) {
+          results.push({ site: url, phone, href });
+          // console.log(`📱 Receive raqam topildi: ${phone} (href: ${href})`);
+        }
       }
     });
 
@@ -170,22 +289,99 @@ async function scrapeSite(url) {
         unique.push(r);
       }
     }
-    return unique;
+    console.log(`✅ Receive dan unique raqamlar: ${unique.length}`);
+    return unique.slice(0, 4);  // Faqat 4 ta (birinchi sahifa uchun)
   } catch (err) {
     console.error('scrapeSite failed', url, err && err.message);
     return [];
   }
 }
 
-function parseMessagesGeneric(html) {
-  const $ = cheerio.load(html);
-  const messages = [];
-  $('#messages > div.message').each((i, el) => {
-    const $el = $(el);
-    const text = $el.text().replace(/\s+/g, ' ').trim();
-    if (text) messages.push({ text });
-  });
-  return messages;
+async function scrapeSevenSim(url) {
+  try {
+    const html = await fetchHtml(url);
+    const $ = cheerio.load(html);
+    const results = [];
+
+    const selectors = ['a.number', 'a[href^="/number/"]', '.number-item a', 'td a[href*="/number/"]'];
+    
+    let totalElements = 0;
+    selectors.forEach(sel => {
+      const elements = $(sel);
+      totalElements += elements.length;
+      // console.log(`🔍 7sim selector "${sel}": ${elements.length} ta element`);
+    });
+    // console.log(`🔍 7sim jami elementlar: ${totalElements}`);
+
+    $('a[href^="/number/"]').each((i, el) => {
+      const $el = $(el);
+      const text = $el.text().replace(/\s+/g, ' ').trim();
+      if (!text) return;
+
+      let phone = text.match(PHONE_RE);
+      if (!phone) {
+        const href = $el.attr('href');
+        if (href && href.includes('/number/')) {
+          phone = href.match(/\/number\/(\+?\d[\d\s\-\$\$]+)/); 
+          if (phone) {
+            phone = phone[1].replace(/[^\d+]/g, '');
+          }
+        }
+      } else {
+        phone = phone[0].replace(/[^\d+]/g, '');
+      }
+
+      if (!phone || !phone.match(PHONE_RE)) return;
+
+      let href = $el.attr('href');
+      if (href && !href.startsWith('http')) {
+        href = new URL(href, url).toString();
+      }
+
+      if (filterPhone(phone, url)) {
+        results.push({ site: url, phone, href });
+        // console.log(`📱 7sim raqam topildi: ${phone} (href: ${href})`);
+      }
+    });
+
+    if (results.length === 0) {
+      console.log('⚠️ Asosiy selector ishlamadi, barcha <a> larni tekshirish...');
+      $('a').each((i, el) => {
+        const $el = $(el);
+        const text = $el.text().replace(/\s+/g, ' ').trim();
+        if (!text) return;
+        const matches = text.match(PHONE_RE);
+        if (!matches) return;
+
+        let href = $el.attr('href');
+        if (href && !href.startsWith('http')) {
+          href = new URL(href, url).toString();
+        }
+
+        for (const m of matches) {
+          const phone = m.replace(/[^\d+]/g, '');
+          if (filterPhone(phone, url)) {
+            results.push({ site: url, phone, href });
+            // console.log(`📱 7sim fallback raqam: ${phone}`);
+          }
+        }
+      });
+    }
+
+    const seen = new Map();
+    const unique = [];
+    for (const r of results) {
+      if (!seen.has(r.phone)) {
+        seen.set(r.phone, true);
+        unique.push(r);
+      }
+    }
+    // console.log(`✅ 7sim dan unique raqamlar: ${unique.length}`);
+    return unique.slice(0, 30);  // 30 taga oshirildi (pagination uchun)
+  } catch (err) {
+    console.error('scrapeSevenSim failed', url, err && err.message);
+    return [];
+  }
 }
 
 async function fetchMessagesForItem(item) {
@@ -360,47 +556,86 @@ if (data === 'check_subscription') {
       show_alert: true
     });
   }
-  if (data === 'get_number') {
-    const user = await getUser(userId);
-    if (!user) {
-      return bot.answerCallbackQuery(callbackQuery.id, {
-        text: 'Iltimos /start buyrug‘ini yuboring.'
-      });
-    }
-
-    if (user.referalCount < 10) {
-      return bot.answerCallbackQuery(callbackQuery.id, {
-        text: '🚫 Raqam olish uchun kamida 10 ta referalingiz bo‘lishi kerak.',
-        show_alert: true
-      });
-    }
-
-    await bot.answerCallbackQuery(callbackQuery.id, {
-      text: '⏳ Raqamlar olinmoqda, iltimos kuting...'
-    });
-
-    const numbers = await scrapeSite(receiveSite);
-    if (numbers.length === 0) {
-      return bot.editMessageText('❌ Hech qanday raqam topilmadi.', {
-        chat_id: chatId,
-        message_id: msg.message_id
-      });
-    }
-
-    const topNumbers = numbers.slice(0, 5);
-    const buttons = topNumbers.map((item, idx) => {
-      return [{ text: item.phone, callback_data: `select_number_${idx}` }];
-    });
-    buttons.push([{ text: '⬅️ Orqaga', callback_data: 'back_to_main' }]);
-
-    userSelections.set(userId, topNumbers);
-
-    return bot.editMessageText('📱 Raqamni tanlang:', {
-      chat_id: chatId,
-      message_id: msg.message_id,
-      reply_markup: { inline_keyboard: buttons }
+if (data === 'get_number') {
+  const user = await getUser(userId);
+  if (!user) {
+    return bot.answerCallbackQuery(callbackQuery.id, {
+      text: 'Iltimos /start buyrug‘ini yuboring.'
     });
   }
+
+  if (user.referalCount < 10) {
+    return bot.answerCallbackQuery(callbackQuery.id, {
+      text: '🚫 Raqam olish uchun kamida 10 ta referalingiz bo‘lishi kerak.',
+      show_alert: true
+    });
+  }
+
+  await bot.answerCallbackQuery(callbackQuery.id, {
+    text: '⏳ Raqamlar olinmoqda, iltimos kuting...'
+  });
+
+  // Ikkala saytdan parallel ravishda raqam olish
+  let [receiveNumbers, sevenSimNumbers] = await Promise.all([
+    scrapeSite(receiveSite),  // 4 ta
+    scrapeSevenSim(sevenSimSite)  // 30 ta
+  ]);
+
+  // Barcha raqamlarni birlashtirish va unique qilish
+  const allNumbers = [...receiveNumbers, ...sevenSimNumbers];
+  const seen = new Map();
+  const uniqueAll = allNumbers.filter(item => {
+    if (!seen.has(item.phone)) {
+      seen.set(item.phone, true);
+      return true;
+    }
+    return false;
+  });
+
+  if (uniqueAll.length === 0) {
+    return bot.editMessageText('❌ Hech qanday raqam topilmadi.', {
+      chat_id: chatId,
+      message_id: msg.message_id
+    });
+  }
+
+  console.log(`📊 Jami unique raqamlar: ${uniqueAll.length} (receive: ${receiveNumbers.length}, 7sim: ${sevenSimNumbers.length})`);
+
+  // Pagination sozlamalari
+  const pageSize = 8;  // Har sahifada 8 ta (10 tadan kam)
+  const totalPages = Math.ceil(uniqueAll.length / pageSize);
+  
+  // receiveNumbers va sevenSimNumbers ni ham saqlash (faqat birinchi sahifa uchun)
+  userSelections.set(userId, { 
+    allNumbers: uniqueAll, 
+    receiveNumbers,  // Qo'shildi
+    sevenSimNumbers,  // Qo'shildi
+    currentPage: 0, 
+    pageSize, 
+    totalPages 
+  });
+
+  // Birinchi sahifani ko'rsatish
+  return showNumberPage(chatId, msg.message_id, userId, userSelections);
+}
+if (data === 'next_page') {
+  const selections = userSelections.get(userId);
+  if (!selections || selections.currentPage >= selections.totalPages - 1) {
+    return bot.answerCallbackQuery(callbackQuery.id, { text: '❌ Oxirgi sahifa.' });
+  }
+  selections.currentPage++;
+  userSelections.set(userId, selections);
+  return showNumberPage(chatId, msg.message_id, userId, userSelections);
+}
+if (data === 'prev_page') {
+  const selections = userSelections.get(userId);
+  if (!selections || selections.currentPage <= 0) {
+    return bot.answerCallbackQuery(callbackQuery.id, { text: '❌ Birinchi sahifa.' });
+  }
+  selections.currentPage--;
+  userSelections.set(userId, selections);
+  return showNumberPage(chatId, msg.message_id, userId, userSelections);
+}
 if (data === 'get_gift') {
   const user = await getUser(userId);
   if (!user) {
@@ -523,124 +758,92 @@ if (data.startsWith('confirm_gift_')) {
   }
 }
 
-  if (data.startsWith('select_number_')) {
-    const idx = parseInt(data.split('_').pop(), 10);
-    const selections = userSelections.get(userId);
-    if (!selections || !selections[idx]) {
-      return bot.answerCallbackQuery(callbackQuery.id, {
-        text: '❌ Tanlangan raqam topilmadi.'
-      });
-    }
+if (data.startsWith('select_number_')) {
+  let idx, siteType;
+  if (data.startsWith('select_number_receive_')) {
+    siteType = 'receive';
+    idx = parseInt(data.split('_').pop(), 10);
+  } else if (data.startsWith('select_number_7sim_')) {
+    siteType = '7sim';
+    idx = parseInt(data.split('_').pop(), 10);
+  } else {
+    return bot.answerCallbackQuery(callbackQuery.id, { text: '❌ Noto\'g\'ri tanlov.' });
+  }
 
-    const selected = selections[idx];
-    userSelections.set(`${userId}_selected`, selected); // Tanlangan raqamni saqlash
+  const selections = userSelections.get(userId);
+  if (!selections) {
+    return bot.answerCallbackQuery(callbackQuery.id, { text: '❌ Raqamlar topilmadi.' });
+  }
 
-    return bot.editMessageText(
-        `<b>📞 Siz <code>${selected.phone}</code> raqamini tanladingiz.</b>
+  const selected = selections.allNumbers[idx];  
+  if (!selected) {
+    return bot.answerCallbackQuery(callbackQuery.id, { text: '❌ Tanlangan raqam topilmadi (indeks: ' + idx + ').' });  
+  }
+
+  userSelections.set(`${userId}_selected`, { ...selected, site: selected.site });
+  const siteName = selected.site === receiveSite ? 'receive-sms-online.info' : '7sim.net';
+
+  return bot.editMessageText(
+    `<b>📞 Siz <code>${selected.phone}</code> raqamini tanladingiz.</b>
 <blockquote>
 <b><i>
 ❗️ Ushbu raqamni ishlatish uchun 10 ta referalingiz kamaytiriladi.
 
 ⚠️ Diqqat! Bu raqam ommaviy tarzda foydalaniladi. Quyidagi holatlar bo‘lishi mumkin:
 
-• 🕐 Raqam ilgari boshqa foydalanuvchilar tomonidan ishlatilgan bo‘lishi mumkin.  
-• 🔐 Ba’zi servislar ikki bosqichli himoya (2FA) yoki parol bilan himoyalangan bo‘lishi mumkin.  
-• 📩 Kod yuborilishi kafolatlanmaydi — bu servisga, raqamga va vaqtga bog‘liq.  
-• ⌛ Kod kechikishi yoki umuman kelmasligi ehtimoli bor.  
-• ❌ Barcha xizmatlar bu raqamlarni qabul qilavermasligi mumkin.
+- 🕐 Raqam ilgari boshqa foydalanuvchilar tomonidan ishlatilgan bo‘lishi mumkin.  
+- 🔐 Ba’zi servislar ikki bosqichli himoya (2FA) yoki parol bilan himoyalangan bo‘lishi mumkin.  
+- 📩 Kod yuborilishi kafolatlanmaydi — bu servisga, raqamga va vaqtga bog‘liq.  
+- ⌛ Kod kechikishi yoki umuman kelmasligi ehtimoli bor.  
+- ❌ Barcha xizmatlar bu raqamlarni qabul qilavermasligi mumkin.
 
 📌 Ushbu raqamni tanlab, siz yuqoridagi holatlarni tushunganingizni va roziligingizni bildirgan bo‘lasiz.
 </i></b>
 </blockquote>
 <b>Davom etishni xohlaysizmi?</b>`,
-      {
-        chat_id: chatId,
-        message_id: msg.message_id,
-        parse_mode : 'HTML',
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: '✅ Roziman', callback_data: 'confirm_number' }],
-            [{ text: '⬅️ Orqaga', callback_data: 'back_to_main' }]
-          ]
-        }
+    {
+      chat_id: chatId,
+      message_id: msg.message_id,
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '✅ Roziman', callback_data: 'confirm_number' }],
+          [{ text: '⬅️ Orqaga', callback_data: 'back_to_main' }]
+        ]
       }
-    );
-  }
-  if (data.startsWith('select_number_')) {
-    const idx = parseInt(data.split('_').pop(), 10);
-    const selections = userSelections.get(userId);
-    if (!selections || !selections[idx]) {
-      return bot.answerCallbackQuery(callbackQuery.id, {
-        text: '❌ Tanlangan raqam topilmadi.'
-      });
     }
+  );
+}
 
-    const selected = selections[idx];
-    userSelections.set(`${userId}_selected`, selected); // Tanlangan raqamni saqlash
-
-    return bot.editMessageText(
-        `<b>📞 Siz <code>${selected.phone}</code> raqamini tanladingiz.</b>
-<blockquote>
-<b><i>
-❗️ Ushbu raqamni ishlatish uchun 10 ta referalingiz kamaytiriladi.
-
-⚠️ Diqqat! Bu raqam ommaviy tarzda foydalaniladi. Quyidagi holatlar bo‘lishi mumkin:
-
-• 🕐 Raqam ilgari boshqa foydalanuvchilar tomonidan ishlatilgan bo‘lishi mumkin.  
-• 🔐 Ba’zi servislar ikki bosqichli himoya (2FA) yoki parol bilan himoyalangan bo‘lishi mumkin.  
-• 📩 Kod yuborilishi kafolatlanmaydi — bu servisga, raqamga va vaqtga bog‘liq.  
-• ⌛ Kod kechikishi yoki umuman kelmasligi ehtimoli bor.  
-• ❌ Barcha xizmatlar bu raqamlarni qabul qilavermasligi mumkin.
-
-📌 Ushbu raqamni tanlab, siz yuqoridagi holatlarni tushunganingizni va roziligingizni bildirgan bo‘lasiz.
-</i></b>
-</blockquote>
-<b>Davom etishni xohlaysizmi?</b>`,
-      {
-        chat_id: chatId,
-        message_id: msg.message_id,
-        parse_mode : 'HTML',
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: '✅ Roziman', callback_data: 'confirm_number' }],
-            [{ text: '⬅️ Orqaga', callback_data: 'back_to_main' }]
-          ]
-        }
+ if (data === 'confirm_number') {
+  const selected = userSelections.get(`${userId}_selected`);
+  if (!selected) {
+    return bot.answerCallbackQuery(callbackQuery.id, {
+      text: '❌ Raqam topilmadi.'
+    });
+  }
+  const decremented = await decrementReferals(userId, 10);  // <-- 5 dan 10 ga o'zgartirdim
+  if (!decremented) {
+    return bot.answerCallbackQuery(callbackQuery.id, {
+      text: '🚫 Yetarli referal yo‘q.'  // <-- Bu yerda ham 10 ta tekshiruvi bor (decrementReferals ichida)
+    });
+  }
+  // SMS olish tugmasi
+  return bot.editMessageText(
+    `<b>📞 Siz tanlagan raqam: <code>${selected.phone}</code></b>\n<i>👉 Endi “SMS olish” tugmasini bosing.</i>\n\n<u>5 daqiqa ichida xabar kelmasa sizga xabar beramiz..</u>`,
+    {
+      chat_id: chatId,
+      message_id: msg.message_id,
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '📩 SMS olish', callback_data: 'get_sms_now' }],
+          [{ text: '⬅️ Orqaga', callback_data: 'back_to_main' }]
+        ]
       }
-    );
-  }
-
-  if (data === 'confirm_number') {
-    const selected = userSelections.get(`${userId}_selected`);
-    if (!selected) {
-      return bot.answerCallbackQuery(callbackQuery.id, {
-        text: '❌ Raqam topilmadi.'
-      });
     }
-
-    const decremented = await decrementReferals(userId, 5);
-    if (!decremented) {
-      return bot.answerCallbackQuery(callbackQuery.id, {
-        text: '🚫 Yetarli referal yo‘q.'
-      });
-    }
-
-    // SMS olish tugmasi
-    return bot.editMessageText(
-      `<b>📞 Siz tanlagan raqam: <code>${selected.phone}</code></b>\n<i>👉 Endi “SMS olish” tugmasini bosing.</i>\n\n<u>5 daqiqa ichida xabar kelmasa sizga xabar beramiz..</u>`,
-      {
-        chat_id: chatId,
-        message_id: msg.message_id,
-        parse_mode: 'HTML',
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: '📩 SMS olish', callback_data: 'get_sms_now' }],
-            [{ text: '⬅️ Orqaga', callback_data: 'back_to_main' }]
-          ]
-        }
-      }
-    );
-  }
+  );
+}
 
 if (data === 'get_sms_now') {
   const selected = userSelections.get(`${userId}_selected`);
