@@ -75,6 +75,7 @@ Quyidagilardan birini tanlang:
       });
 
       bot.once('message', async (msg) => {
+        if (msg.chat.id !== chatId) return;
         const [id, count] = msg.text.trim().split(' ');
         const targetId = parseInt(id, 10);
         const refCount = parseInt(count, 10);
@@ -102,6 +103,7 @@ Quyidagilardan birini tanlang:
       bot.sendMessage(chatId, '📢 E’lon matnini (yoki video, rasm, audio, fayl) yuboring:');
 
       bot.once('message', async (msg) => {
+        if (msg.chat.id !== chatId) return;
         const users = await User.find({}, 'userId');
 
         for (const u of users) {
