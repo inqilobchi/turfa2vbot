@@ -109,7 +109,9 @@ async function getSubscriptionMessage() {
       buttons.push([{ text: `${channel}`, url: `https://t.me/${channel.replace('@', '')}` }]);
     }
   }
-
+  const PERSONAL_CHANNEL_INVITE_LINK = 'https://t.me/+MNFBe47NfK9lNWIy';  
+  const PERSONAL_CHANNEL_TITLE = 'Tegib ketdimi ؟';  
+  buttons.push([{ text: `${PERSONAL_CHANNEL_TITLE} (Obuna so'rovnomasi)`, url: PERSONAL_CHANNEL_INVITE_LINK }]);  
   buttons.push([{ text: '✅ Obuna bo‘ldim', callback_data: 'check_subscription' }]);
 
   return {
