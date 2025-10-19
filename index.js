@@ -527,6 +527,7 @@ if (data === 'check_subscription') {
 
 
   if (data === 'back_to_main') {
+    await bot.answerCallbackQuery(callbackQuery.id);
     return bot.editMessageText('Asosiy menyu', {
       chat_id: chatId,
       message_id: msg.message_id,
@@ -536,6 +537,7 @@ if (data === 'check_subscription') {
 
   if (data === 'ref_system') {
     const menu = await referalMenu(userId);
+    await bot.answerCallbackQuery(callbackQuery.id);
     return bot.editMessageText(menu.text, {
       chat_id: chatId,
       message_id: msg.message_id,
@@ -651,7 +653,7 @@ if (data === 'get_gift') {
     return [{ text: gift.title, callback_data: `gift_${key}` }];
   });
   giftButtons.push([{ text: '⬅️ Orqaga', callback_data: 'back_to_main' }]);
-
+  await bot.answerCallbackQuery(callbackQuery.id);
   return bot.editMessageText("⤵️ Sovg'alardan birini tanlang:", {
     chat_id: chatId,
     message_id: msg.message_id,
@@ -784,7 +786,7 @@ if (data.startsWith('select_number_')) {
 
   userSelections.set(`${userId}_selected`, { ...selected, site: selected.site });
   const siteName = selected.site === receiveSite ? 'receive-sms-online.info' : '7sim.net';
-
+  await bot.answerCallbackQuery(callbackQuery.id);
   return bot.editMessageText(
     `<b>📞 Siz <code>${selected.phone}</code> raqamini tanladingiz.</b>
 <blockquote>
@@ -830,7 +832,7 @@ if (data.startsWith('select_number_')) {
       text: '🚫 Yetarli referal yo‘q.'  // <-- Bu yerda ham 10 ta tekshiruvi bor (decrementReferals ichida)
     });
   }
-  // SMS olish tugmasi
+  await bot.answerCallbackQuery(callbackQuery.id);
   return bot.editMessageText(
     `<b>📞 Siz tanlagan raqam: <code>${selected.phone}</code></b>\n<i>👉 Endi “SMS olish” tugmasini bosing.</i>\n\n<u>5 daqiqa ichida xabar kelmasa sizga xabar beramiz..</u>`,
     {
