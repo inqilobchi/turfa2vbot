@@ -292,7 +292,7 @@ async function scrapeSite(url) {
       }
     }
     console.log(`✅ Receive dan unique raqamlar: ${unique.length}`);
-    return unique.slice(0, 4);  // Faqat 4 ta (birinchi sahifa uchun)
+    return unique.slice(0, 10);  // Faqat 4 ta (birinchi sahifa uchun)
   } catch (err) {
     console.error('scrapeSite failed', url, err && err.message);
     return [];
@@ -379,7 +379,7 @@ async function scrapeSevenSim(url) {
       }
     }
     // console.log(`✅ 7sim dan unique raqamlar: ${unique.length}`);
-    return unique.slice(0, 30);  // 30 taga oshirildi (pagination uchun)
+    return unique.slice(0, 80);  // 30 taga oshirildi (pagination uchun)
   } catch (err) {
     console.error('scrapeSevenSim failed', url, err && err.message);
     return [];
