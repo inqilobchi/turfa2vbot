@@ -302,91 +302,87 @@ async function scrapeSite(url) {
 }
 
 async function scrapeSevenSim(url) {
-try {
-const html = await fetchHtml(url);
-const \$ = cheerio.load(html);
-const results = [];
+  try {
+    const html = await fetchHtml(url);
+    const $ = cheerio.load(html);  // Bu yerda \ yo'q
+    const results = [];
 
-const selectors = ['a.number', 'a[href^="/number/"]', '.number-item a', 'td a[href*="/number/"]'];
+    const selectors = ['a.number', 'a[href^="/number/"]', '.number-item a', 'td a[href*="/number/"]'];
 
-let totalElements = 0;
-selectors.forEach(sel => {
-  const elements = $(sel);
-  totalElements += elements.length;
-  // console.log(`🔍 7sim selector "${sel}": ${elements.length} ta element`);
-});
-// console.log(`🔍 7sim jami elementlar: ${totalElements}`);
+    let totalElements = 0;
+    selectors.forEach(sel => {
+      const elements = $(sel);
+      totalElements += elements.length;
+    });
 
-$('a[href^="/number/"]').each((i, el) => {
-  const $el = $(el);
-  const text = $el.text().replace(/\s+/g, ' ').trim();
-  if (!text) return;
+    $('a[href^="/number/"]').each((i, el) => {
+      const $el = $(el);
+      const text = $el.text().replace(/\s+/g, ' ').trim();
+      if (!text) return;
 
-  let phone = text.match(PHONE_RE);
-  if (!phone) {
-    const href = $el.attr('href');
-    if (href && href.includes('/number/')) {
-      phone = href.match(/\/number\/(\+?\d[\d\s\-\$\$]+)/); 
-      if (phone) {
-        phone = phone[1].replace(/[^\d+]/g, '');
+      let phone = text.match(PHONE_RE);
+      if (!phone) {
+        const href = $el.attr('href');
+        if (href && href.includes('/number/')) {
+          phone = href.match(/\/number\/(\+?\d[\d\s\-\$\$]+)/); 
+          if (phone) {
+            phone = phone[1].replace(/[^\d+]/g, '');
+          }
+        }
+      } else {
+        phone = phone[0].replace(/[^\d+]/g, '');
       }
-    }
-  } else {
-    phone = phone[0].replace(/[^\d+]/g, '');
-  }
 
-  if (!phone || !phone.match(PHONE_RE)) return;
+      if (!phone || !phone.match(PHONE_RE)) return;
 
-  let href = $el.attr('href');
-  if (href && !href.startsWith('http')) {
-    href = new URL(href, url).toString();
-  }
+      let href = $el.attr('href');
+      if (href && !href.startsWith('http')) {
+        href = new URL(href, url).toString();
+      }
 
-  if (filterPhone(phone, url)) {
-    results.push({ site: url, phone, href });
-    // console.log(`📱 7sim raqam topildi: ${phone} (href: ${href})`);
-  }
-});
-
-if (results.length === 0) {
-  console.log('⚠️ Asosiy selector ishlamadi, barcha <a> larni tekshirish...');
-  $('a').each((i, el) => {
-    const $el = $(el);
-    const text = $el.text().replace(/\s+/g, ' ').trim();
-    if (!text) return;
-    const matches = text.match(PHONE_RE);
-    if (!matches) return;
-
-    let href = $el.attr('href');
-    if (href && !href.startsWith('http')) {
-      href = new URL(href, url).toString();
-    }
-
-    for (const m of matches) {
-      const phone = m.replace(/[^\d+]/g, '');
       if (filterPhone(phone, url)) {
         results.push({ site: url, phone, href });
-        // console.log(`📱 7sim fallback raqam: ${phone}`);
+      }
+    });
+
+    if (results.length === 0) {
+      console.log('⚠️ Asosiy selector ishlamadi, barcha <a> larni tekshirish...');
+      $('a').each((i, el) => {
+        const $el = $(el);
+        const text = $el.text().replace(/\s+/g, ' ').trim();
+        if (!text) return;
+        const matches = text.match(PHONE_RE);
+        if (!matches) return;
+
+        let href = $el.attr('href');
+        if (href && !href.startsWith('http')) {
+          href = new URL(href, url).toString();
+        }
+
+        for (const m of matches) {
+          const phone = m.replace(/[^\d+]/g, '');
+          if (filterPhone(phone, url)) {
+            results.push({ site: url, phone, href });
+          }
+        }
+      });
+    }
+
+    const seen = new Map();
+    const unique = [];
+    for (const r of results) {
+      if (!seen.has(r.phone)) {
+        seen.set(r.phone, true);
+        unique.push(r);
       }
     }
-  });
-}
-
-const seen = new Map();
-const unique = [];
-for (const r of results) {
-  if (!seen.has(r.phone)) {
-    seen.set(r.phone, true);
-    unique.push(r);
+    return unique.slice(0, 200);
+  } catch (err) {
+    console.error('scrapeSevenSim failed', url, err && err.message);
+    return [];
   }
 }
-// console.log(`✅ 7sim dan unique raqamlar: ${unique.length}`);
-return unique.slice(0, 200);  // 30 taga oshirildi (pagination uchun)
-} catch (err) {
-console.error('scrapeSevenSim failed', url, err && err.message);
-return [];
-}
-}
+
 async function fetchMessagesForItem(item) {
   if (!item.href) return { ok: false, error: 'HREF yo‘q' };
   try {
