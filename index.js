@@ -212,7 +212,7 @@ async function showNumberPage(chatId, messageId, userId, userSelections) {
 }
 
 const receiveSite = 'https://receive-sms-online.info';
-const sevenSimSite = 'https://7sim.net';
+const sevenSimSite = 'https://receive-sms-free.cc';
 const PHONE_RE = /(\+?\d[\d\-\s()]{6,}\d)/g;
 const timeoutOptions = { timeout: 15000 };
 
@@ -379,7 +379,7 @@ async function scrapeSevenSim(url) {
       }
     }
     // console.log(`✅ 7sim dan unique raqamlar: ${unique.length}`);
-    return unique.slice(0, 56);  // 30 taga oshirildi (pagination uchun)
+    return unique.slice(0, 200);  // 30 taga oshirildi (pagination uchun)
   } catch (err) {
     console.error('scrapeSevenSim failed', url, err && err.message);
     return [];
