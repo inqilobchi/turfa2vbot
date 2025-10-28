@@ -110,7 +110,10 @@ async function getSubscriptionMessage() {
   }
   const PERSONAL_CHANNEL_INVITE_LINK = 'https://t.me/+MNFBe47NfK9lNWIy';  
   const PERSONAL_CHANNEL_TITLE = 'Tegib ketdimi ؟';  
+  const SUPPORT_BOT_LINK = 'https://t.me/TurfaSeenBot';
+  const SUPPORT_BOT_TITILE = 'Turfa Seen | Rasmiy🤖';
   buttons.push([{ text: `${PERSONAL_CHANNEL_TITLE}`, url: PERSONAL_CHANNEL_INVITE_LINK }]);  
+  buttons.push([{ text: `${SUPPORT_BOT_TITILE}`, url: SUPPORT_BOT_LINK }]);  
   buttons.push([{ text: '✅ Obuna bo‘ldim', callback_data: 'check_subscription' }]);
 
   return {
@@ -565,9 +568,9 @@ if (data === 'get_number') {
     });
   }
 
-  if (user.referalCount < 7) {
+  if (user.referalCount < 5) {
     return bot.answerCallbackQuery(callbackQuery.id, {
-      text: '🚫 Raqam olish uchun kamida 7 ta referalingiz bo‘lishi kerak.',
+      text: '🚫 Raqam olish uchun kamida 5 ta referalingiz bo‘lishi kerak.',
       show_alert: true
     });
   }
@@ -788,7 +791,7 @@ if (data.startsWith('select_number_')) {
     `<b>📞 Siz <code>${selected.phone}</code> raqamini tanladingiz.</b>
 <blockquote>
 <b><i>
-❗️ Ushbu raqamni ishlatish uchun 7 ta referalingiz kamaytiriladi.
+❗️ Ushbu raqamni ishlatish uchun 5 ta referalingiz kamaytiriladi.
 
 ⚠️ Diqqat! Bu raqam ommaviy tarzda foydalaniladi. Quyidagi holatlar bo‘lishi mumkin:
 
@@ -823,7 +826,7 @@ if (data.startsWith('select_number_')) {
       text: '❌ Raqam topilmadi.'
     });
   }
-  const decremented = await decrementReferals(userId, 7);  // <-- 5 dan 10 ga o'zgartirdim
+  const decremented = await decrementReferals(userId, 5);  // <-- 5 dan 10 ga o'zgartirdim
   if (!decremented) {
     return bot.answerCallbackQuery(callbackQuery.id, {
       text: '🚫 Yetarli referal yo‘q.'  // <-- Bu yerda ham 10 ta tekshiruvi bor (decrementReferals ichida)
