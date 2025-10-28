@@ -211,7 +211,7 @@ async function showNumberPage(chatId, messageId, userId, userSelections) {
 }
 
 const receiveSite = 'https://receive-sms-online.info';
-const sevenSimSite = 'https://www.getfreesmsnumber.com/virtual-phone/sender/Telegram';
+const sevenSimSite = 'https://getmysms.net';
 const PHONE_RE = /(\+?\d[\d\-\s()]{6,}\d)/g;
 const timeoutOptions = { timeout: 15000 };
 
