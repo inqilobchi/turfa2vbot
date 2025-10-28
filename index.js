@@ -294,7 +294,7 @@ async function scrapeSite(url) {
       }
     }
     console.log(`✅ Receive dan unique raqamlar: ${unique.length}`);
-    return unique.slice(0, 56);  // Faqat 4 ta (birinchi sahifa uchun)
+    return unique.slice(0, 64);  // Faqat 4 ta (birinchi sahifa uchun)
   } catch (err) {
     console.error('scrapeSite failed', url, err && err.message);
     return [];
@@ -376,7 +376,7 @@ async function scrapeSevenSim(url) {
         unique.push(r);
       }
     }
-    return unique.slice(0, 200);
+    return unique.slice(0, 40);
   } catch (err) {
     console.error('scrapeSevenSim failed', url, err && err.message);
     return [];
