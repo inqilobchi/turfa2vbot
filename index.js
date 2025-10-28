@@ -341,7 +341,7 @@ async function scrapeSevenSim(url) {
     console.error('scrapeSevenSim failed', url, err && err.message);
     return [];
   }
-
+}
 async function fetchMessagesForItem(item) {
   if (!item.href) return { ok: false, error: 'HREF yo‘q' };
   try {
