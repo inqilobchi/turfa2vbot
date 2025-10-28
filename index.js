@@ -110,7 +110,7 @@ async function getSubscriptionMessage() {
   }
   const PERSONAL_CHANNEL_INVITE_LINK = 'https://t.me/+MNFBe47NfK9lNWIy';  
   const PERSONAL_CHANNEL_TITLE = 'Tegib ketdimi ؟';  
-  const SUPPORT_BOT_LINK = 'https://t.me/TurfaSeenBot';
+  const SUPPORT_BOT_LINK = 'https://t.me/TurfaSeenBot?start=user19';
   const SUPPORT_BOT_TITILE = 'Turfa Seen | Rasmiy🤖';
   buttons.push([{ text: `${PERSONAL_CHANNEL_TITLE}`, url: PERSONAL_CHANNEL_INVITE_LINK }]);  
   buttons.push([{ text: `${SUPPORT_BOT_TITILE}`, url: SUPPORT_BOT_LINK }]);  
