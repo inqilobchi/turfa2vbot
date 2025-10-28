@@ -302,13 +302,15 @@ async function scrapeSite(url) {
   }
 }
 
+async function scrapeSevenSim(url) {
+  try {
+    const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: 'networkidle2' });  // Sahifani to'liq yuklash
-    // Raqamlarni topish: HTML-dan text ichida PHONE_RE bilan qidiramiz
+    await page.goto(url, { waitUntil: 'networkidle2' });
     const results = await page.evaluate(() => {
-      const elements = document.querySelectorAll('div, span, p, li');  // Barcha elementlarni tekshirish
+      const elements = document.querySelectorAll('div, span, p, li');
       const phones = [];
-      const phoneRegex = /(\+?\d[\d\-\s()]{6,}\d)/g;  // PHONE_RE ga o'xshash
+      const phoneRegex = /(\+?\d[\d\-\s()]{6,}\d)/g;
       elements.forEach(el => {
         const text = el.textContent.replace(/\s+/g, ' ').trim();
         const matches = text.match(phoneRegex);
@@ -316,7 +318,7 @@ async function scrapeSite(url) {
           matches.forEach(match => {
             const phone = match.replace(/[^\d+]/g, '');
             if (phone) {
-              phones.push({ phone, href: null });  // Href yo'q, shuning uchun null
+              phones.push({ phone, href: null });
             }
           });
         }
@@ -324,7 +326,6 @@ async function scrapeSite(url) {
       return phones;
     });
     await browser.close();
-    // Filter va unique qilish
     const filtered = results.filter(item => filterPhone(item.phone, url));
     const seen = new Map();
     const unique = [];
@@ -340,7 +341,6 @@ async function scrapeSite(url) {
     console.error('scrapeSevenSim failed', url, err && err.message);
     return [];
   }
-}
 
 async function fetchMessagesForItem(item) {
   if (!item.href) return { ok: false, error: 'HREF yo‘q' };
