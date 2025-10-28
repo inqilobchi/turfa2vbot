@@ -1,5 +1,6 @@
 require('dotenv').config();
 const axios = require('axios');
+const HttpsProxyAgent = require('https-proxy-agent');
 const Fastify = require('fastify');
 const fastify = Fastify({ logger: true });
 const TelegramBot = require('node-telegram-bot-api');
@@ -13,7 +14,8 @@ const MONGO_URI = process.env.MONGO_URI;
 const ADMIN_IDS = (process.env.ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
 const tempReferrers = new Map(); 
 
-
+const proxy = 'http://103.203.234.103:8080';  
+const agent = new HttpsProxyAgent(proxy);
 const token = process.env.BOT_TOKEN;
 const bot = new TelegramBot(token, { webHook: true });
 
@@ -221,6 +223,7 @@ async function fetchHtml(url) {
   const res = await fetch(url, { 
     ...timeoutOptions, 
     redirect: 'follow',
+    httpsAgent: agent, 
     headers: { 
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
       'Referer': 'https://www.google.com/',  
