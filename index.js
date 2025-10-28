@@ -15,7 +15,7 @@ const ADMIN_IDS = (process.env.ADMIN_IDS || '').split(',').map(id => id.trim()).
 const tempReferrers = new Map(); 
 
 const proxy = 'http://103.203.234.103:8080';  
-const agent = new HttpsProxyAgent(proxy);
+const agent = HttpsProxyAgent(proxy);
 const token = process.env.BOT_TOKEN;
 const bot = new TelegramBot(token, { webHook: true });
 
@@ -224,6 +224,7 @@ async function fetchHtml(url) {
     ...timeoutOptions, 
     redirect: 'follow',
     httpsAgent: agent, 
+    timeout: 15000,
     headers: { 
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
       'Referer': 'https://www.google.com/',  
