@@ -1,5 +1,6 @@
 require('dotenv').config();
 const axios = require('axios');
+const puppeteer = require('puppeteer');
 const Fastify = require('fastify');
 const fastify = Fastify({ logger: true });
 const TelegramBot = require('node-telegram-bot-api');
@@ -301,87 +302,40 @@ async function scrapeSite(url) {
   }
 }
 
-async function scrapeSevenSim(url) {
-  try {
-    const html = await fetchHtml(url);
-    const $ = cheerio.load(html);
-    const results = [];
-
-    const selectors = ['a.number', 'a[href^="/number/"]', '.number-item a', 'td a[href*="/number/"]'];
-    
-    let totalElements = 0;
-    selectors.forEach(sel => {
-      const elements = $(sel);
-      totalElements += elements.length;
-      // console.log(`🔍 7sim selector "${sel}": ${elements.length} ta element`);
-    });
-    // console.log(`🔍 7sim jami elementlar: ${totalElements}`);
-
-    $('a[href^="/number/"]').each((i, el) => {
-      const $el = $(el);
-      const text = $el.text().replace(/\s+/g, ' ').trim();
-      if (!text) return;
-
-      let phone = text.match(PHONE_RE);
-      if (!phone) {
-        const href = $el.attr('href');
-        if (href && href.includes('/number/')) {
-          phone = href.match(/\/number\/(\+?\d[\d\s\-\$\$]+)/); 
-          if (phone) {
-            phone = phone[1].replace(/[^\d+]/g, '');
-          }
-        }
-      } else {
-        phone = phone[0].replace(/[^\d+]/g, '');
-      }
-
-      if (!phone || !phone.match(PHONE_RE)) return;
-
-      let href = $el.attr('href');
-      if (href && !href.startsWith('http')) {
-        href = new URL(href, url).toString();
-      }
-
-      if (filterPhone(phone, url)) {
-        results.push({ site: url, phone, href });
-        // console.log(`📱 7sim raqam topildi: ${phone} (href: ${href})`);
-      }
-    });
-
-    if (results.length === 0) {
-      console.log('⚠️ Asosiy selector ishlamadi, barcha <a> larni tekshirish...');
-      $('a').each((i, el) => {
-        const $el = $(el);
-        const text = $el.text().replace(/\s+/g, ' ').trim();
-        if (!text) return;
-        const matches = text.match(PHONE_RE);
-        if (!matches) return;
-
-        let href = $el.attr('href');
-        if (href && !href.startsWith('http')) {
-          href = new URL(href, url).toString();
-        }
-
-        for (const m of matches) {
-          const phone = m.replace(/[^\d+]/g, '');
-          if (filterPhone(phone, url)) {
-            results.push({ site: url, phone, href });
-            // console.log(`📱 7sim fallback raqam: ${phone}`);
-          }
+    const page = await browser.newPage();
+    await page.goto(url, { waitUntil: 'networkidle2' });  // Sahifani to'liq yuklash
+    // Raqamlarni topish: HTML-dan text ichida PHONE_RE bilan qidiramiz
+    const results = await page.evaluate(() => {
+      const elements = document.querySelectorAll('div, span, p, li');  // Barcha elementlarni tekshirish
+      const phones = [];
+      const phoneRegex = /(\+?\d[\d\-\s()]{6,}\d)/g;  // PHONE_RE ga o'xshash
+      elements.forEach(el => {
+        const text = el.textContent.replace(/\s+/g, ' ').trim();
+        const matches = text.match(phoneRegex);
+        if (matches) {
+          matches.forEach(match => {
+            const phone = match.replace(/[^\d+]/g, '');
+            if (phone) {
+              phones.push({ phone, href: null });  // Href yo'q, shuning uchun null
+            }
+          });
         }
       });
-    }
-
+      return phones;
+    });
+    await browser.close();
+    // Filter va unique qilish
+    const filtered = results.filter(item => filterPhone(item.phone, url));
     const seen = new Map();
     const unique = [];
-    for (const r of results) {
+    for (const r of filtered) {
       if (!seen.has(r.phone)) {
         seen.set(r.phone, true);
-        unique.push(r);
+        unique.push({ site: url, phone: r.phone, href: r.href });
       }
     }
-    // console.log(`✅ 7sim dan unique raqamlar: ${unique.length}`);
-    return unique.slice(0, 200);  // 30 taga oshirildi (pagination uchun)
+    console.log(`✅ GetMySMS.net dan unique raqamlar: ${unique.length}`);
+    return unique.slice(0, 200);
   } catch (err) {
     console.error('scrapeSevenSim failed', url, err && err.message);
     return [];
