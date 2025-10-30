@@ -153,28 +153,35 @@ async function showNumberPage(chatId, messageId, userId, userSelections) {
     const row = [];
     
     // Birinchi raqam (chap ustun)
-    const item1 = pageNumbers[i];
-    let siteLabel1 = item1.site === receiveSite ? '' : '';
-    if (currentPage === 0 && item1.site === receiveSite) {
-      siteLabel1 = '';  // Birinchi sahifada receive ni belgilash
-    }
-    row.push({ 
-      text: `${item1.phone} ${siteLabel1}`, 
-      callback_data: `select_number_${item1.site === receiveSite ? 'receive' : '7sim'}_${startIdx + i}` 
-    });
+const item1 = pageNumbers[i];
+let siteLabel1 = '';
+if (item1.site.includes('onlinesim.io')) {
+  siteLabel1 = ' (OnlineSim)';
+} else if (item1.site === receiveSite) {
+  siteLabel1 = ' (Receive)';
+} else if (item1.site === sevenSimSite) {
+  siteLabel1 = ' (7Sim)';
+}
+row.push({ 
+  text: `${item1.phone}${siteLabel1}`, 
+  callback_data: `select_number_${item1.site.includes('onlinesim.io') ? 'onlinesim' : item1.site === receiveSite ? 'receive' : '7sim'}_${startIdx + i}`
+});
 
-    // Ikkinchi raqam (o'ng ustun, agar mavjud bo'lsa)
-    if (i + 1 < pageNumbers.length) {
-      const item2 = pageNumbers[i + 1];
-      let siteLabel2 = item2.site === receiveSite ? '' : '';
-      if (currentPage === 0 && item2.site === receiveSite) {
-        siteLabel2 = '';
-      }
-      row.push({ 
-        text: `${item2.phone} ${siteLabel2}`, 
-        callback_data: `select_number_${item2.site === receiveSite ? 'receive' : '7sim'}_${startIdx + i + 1}` 
-      });
-    } else {
+if (i + 1 < pageNumbers.length) {
+  const item2 = pageNumbers[i + 1];
+  let siteLabel2 = '';
+  if (item2.site.includes('onlinesim.io')) {
+    siteLabel2 = ' (OnlineSim)';
+  } else if (item2.site === receiveSite) {
+    siteLabel2 = ' (Receive)';
+  } else if (item2.site === sevenSimSite) {
+    siteLabel2 = ' (7Sim)';
+  }
+  row.push({ 
+    text: `${item2.phone}${siteLabel2}`, 
+    callback_data: `select_number_${item2.site.includes('onlinesim.io') ? 'onlinesim' : item2.site === receiveSite ? 'receive' : '7sim'}_${startIdx + i + 1}` 
+  });
+} else {
       row.push({ text: '—', callback_data: null });  // Bo'sh joy
     }
 
@@ -215,6 +222,14 @@ async function showNumberPage(chatId, messageId, userId, userSelections) {
 
 const receiveSite = 'https://receive-sms-online.info';
 const sevenSimSite = 'https://temp-sms.org';
+const onlineSimSites = [
+  'https://onlinesim.io/free_numbers/germany',
+  'https://onlinesim.io/free_numbers/austria',
+  'https://onlinesim.io/free_numbers/uzbekistan',
+  'https://onlinesim.io/free_numbers/italy',
+  'https://onlinesim.io/free_numbers/spain',
+  'https://onlinesim.io/free_numbers/usa'
+];
 const PHONE_RE = /(\+?\d[\d\-\s()]{6,}\d)/g;
 const timeoutOptions = { timeout: 15000 };
 
@@ -385,7 +400,43 @@ async function scrapeSevenSim(url) {
     return [];
   }
 }
-
+async function scrapeOnlineSim(url) {
+  try {
+    const html = await fetchHtml(url);
+    const $ = cheerio.load(html);
+    const results = [];
+    // Onlinesim.io uchun selectorlarni taxmin qilish (raqamlar <a> teglarida bo'lishi mumkin)
+    $('a').each((i, el) => {
+      const $el = $(el);
+      const text = $el.text().replace(/\s+/g, ' ').trim();
+      if (!text) return;
+      const matches = text.match(PHONE_RE);
+      if (!matches) return;
+      let href = $el.attr('href');
+      if (href && !href.startsWith('http')) {
+        href = new URL(href, url).toString();
+      }
+      for (const m of matches) {
+        const phone = m.replace(/[^\d+]/g, '');
+        if (filterPhone(phone, url)) {
+          results.push({ site: url, phone, href });
+        }
+      }
+    });
+    const seen = new Map();
+    const unique = [];
+    for (const r of results) {
+      if (!seen.has(r.phone)) {
+        seen.set(r.phone, true);
+        unique.push(r);
+      }
+    }
+    console.log(`✅ ${url} dan unique raqamlar: ${unique.length}`);
+    return unique.slice(0, 20);  // Chegaralash
+  } catch (err) {
+    console.error('scrapeOnlineSim failed', url, err && err.message);
+    return [];
+  }}
 async function fetchMessagesForItem(item) {
   if (!item.href) return { ok: false, error: 'HREF yo‘q' };
   try {
@@ -580,13 +631,14 @@ if (data === 'get_number') {
   });
 
   // Ikkala saytdan parallel ravishda raqam olish
-  let [receiveNumbers, sevenSimNumbers] = await Promise.all([
+  let [receiveNumbers, sevenSimNumbers, ...onlineSimNumbers] = await Promise.all([
     scrapeSite(receiveSite),  // 4 ta
     scrapeSevenSim(sevenSimSite)  // 30 ta
+    ...onlineSimSites.map(site => scrapeOnlineSim(site))
   ]);
 
   // Barcha raqamlarni birlashtirish va unique qilish
-  const allNumbers = [...receiveNumbers, ...sevenSimNumbers];
+  const allNumbers = [...receiveNumbers, ...sevenSimNumbers, ...onlineSimNumbers.flat()].filter(item => item);  
   const seen = new Map();
   const uniqueAll = allNumbers.filter(item => {
     if (!seen.has(item.phone)) {
@@ -769,6 +821,9 @@ if (data.startsWith('select_number_')) {
     idx = parseInt(data.split('_').pop(), 10);
   } else if (data.startsWith('select_number_7sim_')) {
     siteType = '7sim';
+    idx = parseInt(data.split('_').pop(), 10);
+  } else if (data.startsWith('select_number_onlinesim_')) {
+    siteType = 'onlinesim';
     idx = parseInt(data.split('_').pop(), 10);
   } else {
     return bot.answerCallbackQuery(callbackQuery.id, { text: '❌ Noto\'g\'ri tanlov.' });
