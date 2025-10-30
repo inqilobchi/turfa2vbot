@@ -223,12 +223,13 @@ if (i + 1 < pageNumbers.length) {
 const receiveSite = 'https://receive-sms-online.info';
 const sevenSimSite = 'https://temp-sms.org';
 const onlineSimSites = [
-  'https://onlinesim.io/free_numbers/germany',
-  'https://onlinesim.io/free_numbers/austria',
-  'https://onlinesim.io/free_numbers/uzbekistan',
-  'https://onlinesim.io/free_numbers/italy',
-  'https://onlinesim.io/free_numbers/spain',
-  'https://onlinesim.io/free_numbers/usa'
+     'https://sms-verification-service.com/',
+     'https://receive-sms.cc/',
+     'https://smsreceivefree.com/',
+     'https://freesmsverification.com/',
+     'https://sms-online.co/',
+     'https://receivesms.co/',
+     'https://sms-receive.net/'
 ];
 const PHONE_RE = /(\+?\d[\d\-\s()]{6,}\d)/g;
 const timeoutOptions = { timeout: 15000 };
@@ -633,7 +634,7 @@ if (data === 'get_number') {
   // Ikkala saytdan parallel ravishda raqam olish
 let receiveNumbers = await scrapeSite(receiveSite).catch(err => { console.error('Receive scraping error:', err.message); return []; });
 let sevenSimNumbers = await scrapeSevenSim(sevenSimSite).catch(err => { console.error('7Sim scraping error:', err.message); return []; });
-let onlineSimNumbers = await Promise.all(onlineSimSites.map(site => scrapeOnlineSim(site).catch(err => { console.error(`OnlineSim ${site} scraping error:`, err.message); return []; })));
+let onlineSimNumbers = await Promise.all(onlineSimSites.map(site => scrapeOnlineSim(site).catch(err => { console.error(`FreeSMS ${site} scraping error:`, err.message); return []; })));
 
   // Barcha raqamlarni birlashtirish va unique qilish
   const allNumbers = [...receiveNumbers, ...sevenSimNumbers, ...onlineSimNumbers.flat()].filter(item => item);  
@@ -838,7 +839,7 @@ if (data.startsWith('select_number_')) {
   }
 
   userSelections.set(`${userId}_selected`, { ...selected, site: selected.site });
-  const siteName = selected.site === receiveSite ? 'receive-sms-online.info' : '7sim.net';
+  const siteName = selected.site === receiveSite ? '' : '';
   await bot.answerCallbackQuery(callbackQuery.id);
   return bot.editMessageText(
     `<b>📞 Siz <code>${selected.phone}</code> raqamini tanladingiz.</b>
