@@ -631,11 +631,9 @@ if (data === 'get_number') {
   });
 
   // Ikkala saytdan parallel ravishda raqam olish
-  let [receiveNumbers, sevenSimNumbers, ...onlineSimNumbers] = await Promise.all([
-    scrapeSite(receiveSite),  // 4 ta
-    scrapeSevenSim(sevenSimSite),  // 30 ta
-    ...onlineSimSites.map(site => scrapeOnlineSim(site))
-  ]);
+let receiveNumbers = await scrapeSite(receiveSite).catch(err => { console.error('Receive scraping error:', err.message); return []; });
+let sevenSimNumbers = await scrapeSevenSim(sevenSimSite).catch(err => { console.error('7Sim scraping error:', err.message); return []; });
+let onlineSimNumbers = await Promise.all(onlineSimSites.map(site => scrapeOnlineSim(site).catch(err => { console.error(`OnlineSim ${site} scraping error:`, err.message); return []; })));
 
   // Barcha raqamlarni birlashtirish va unique qilish
   const allNumbers = [...receiveNumbers, ...sevenSimNumbers, ...onlineSimNumbers.flat()].filter(item => item);  
