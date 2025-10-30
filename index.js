@@ -633,7 +633,7 @@ if (data === 'get_number') {
   // Ikkala saytdan parallel ravishda raqam olish
   let [receiveNumbers, sevenSimNumbers, ...onlineSimNumbers] = await Promise.all([
     scrapeSite(receiveSite),  // 4 ta
-    scrapeSevenSim(sevenSimSite)  // 30 ta
+    scrapeSevenSim(sevenSimSite),  // 30 ta
     ...onlineSimSites.map(site => scrapeOnlineSim(site))
   ]);
 
