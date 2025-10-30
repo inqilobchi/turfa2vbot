@@ -171,11 +171,11 @@ if (i + 1 < pageNumbers.length) {
   const item2 = pageNumbers[i + 1];
   let siteLabel2 = '';
   if (item2.site.includes('onlinesim.io')) {
-    siteLabel2 = ' (OnlineSim)';
+    siteLabel2 = '🪐';
   } else if (item2.site === receiveSite) {
-    siteLabel2 = ' (Receive)';
+    siteLabel2 = '🎁';
   } else if (item2.site === sevenSimSite) {
-    siteLabel2 = ' (7Sim)';
+    siteLabel2 = '✨';
   }
   row.push({ 
     text: `${item2.phone}${siteLabel2}`, 
@@ -226,7 +226,9 @@ const onlineSimSites = [
      'https://sms24.me',
      'https://sms24.me/en/countries/de',
      'https://sms24.me/en/countries/kr',
-     'https://sms24.me/en/countries/uz'
+     'https://sms24.me/en/countries/uz',
+     'https://sms24.me/en/countries/usa',
+     'https://sms24.me/en/countries/jp'
 ];
 const PHONE_RE = /(\+?\d[\d\-\s()]{6,}\d)/g;
 const timeoutOptions = { timeout: 15000 };
