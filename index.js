@@ -156,11 +156,11 @@ async function showNumberPage(chatId, messageId, userId, userSelections) {
 const item1 = pageNumbers[i];
 let siteLabel1 = '';
 if (item1.site.includes('onlinesim.io')) {
-  siteLabel1 = ' (OnlineSim)';
+  siteLabel1 = '';
 } else if (item1.site === receiveSite) {
-  siteLabel1 = ' (Receive)';
+  siteLabel1 = '';
 } else if (item1.site === sevenSimSite) {
-  siteLabel1 = ' (7Sim)';
+  siteLabel1 = '';
 }
 row.push({ 
   text: `${item1.phone}${siteLabel1}`, 
@@ -223,13 +223,10 @@ if (i + 1 < pageNumbers.length) {
 const receiveSite = 'https://receive-sms-online.info';
 const sevenSimSite = 'https://temp-sms.org';
 const onlineSimSites = [
-     'https://sms-verification-service.com/',
-     'https://receive-sms.cc/',
-     'https://smsreceivefree.com/',
-     'https://freesmsverification.com/',
-     'https://sms-online.co/',
-     'https://receivesms.co/',
-     'https://sms-receive.net/'
+     'https://sms24.me',
+     'https://onlinesim.io',
+     'https://sms-man.com',
+     'https://5sim.net'
 ];
 const PHONE_RE = /(\+?\d[\d\-\s()]{6,}\d)/g;
 const timeoutOptions = { timeout: 15000 };
