@@ -230,7 +230,9 @@ const onlineSimSites = [
      'https://sms24.me/en/countries/usa',
      'https://sms24.me/en/countries/jp',
      'https://sms24.me/en/countries/pt',
-     'https://sms24.me/en/countries/ar'
+     'https://sms24.me/en/countries/ar',
+     'https://onlinesim.io/free_numbers/usa',
+     'https://onlinesim.io/free_numbers/poland'
 ];
 const PHONE_RE = /(\+?\d[\d\-\s()]{6,}\d)/g;
 const timeoutOptions = { timeout: 15000 };
