@@ -637,9 +637,9 @@ if (data === 'get_number') {
     });
   }
 
-  if (user.referalCount < 7) {
+  if (user.referalCount < 5) {
     return bot.answerCallbackQuery(callbackQuery.id, {
-      text: '🚫 Raqam olish uchun kamida 7 ta referalingiz bo‘lishi kerak.',
+      text: '🚫 Raqam olish uchun kamida 5 ta referalingiz bo‘lishi kerak.',
       show_alert: true
     });
   }
@@ -897,7 +897,7 @@ if (data.startsWith('select_number_')) {
       text: '❌ Raqam topilmadi.'
     });
   }
-  const decremented = await decrementReferals(userId, 7);  // <-- 5 dan 10 ga o'zgartirdim
+  const decremented = await decrementReferals(userId, 5);  // <-- 5 dan 10 ga o'zgartirdim
   if (!decremented) {
     return bot.answerCallbackQuery(callbackQuery.id, {
       text: '🚫 Yetarli referal yo‘q.'  // <-- Bu yerda ham 10 ta tekshiruvi bor (decrementReferals ichida)
