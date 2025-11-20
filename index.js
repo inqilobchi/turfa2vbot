@@ -107,16 +107,10 @@ async function getSubscriptionMessage() {
       // fallback
       buttons.push([{ text: `${channel}`, url: `https://t.me/${channel.replace('@', '')}` }]);
     }
-  }
-  const PERSONAL_CHANNEL_INVITE_LINK = 'https://t.me/+MNFBe47NfK9lNWIy';  
-  const PERSONAL_CHANNEL_TITLE = 'Tegib ketdimi ؟';  
+  } 
   const SUPPORT_BOT_LINK = 'https://t.me/TurfaSeenBot?start=user19';
   const SUPPORT_BOT_TITILE = 'Turfa Seen | Rasmiy🤖';
-  const ADD_CHANNEL_LINK = 'https://t.me/+fFrW_W_6SXlmOTcy';
-  const ADD_CHANNEL_TITLE = 'نافع 🦢';
-  buttons.push([{ text: `${PERSONAL_CHANNEL_TITLE}`, url: PERSONAL_CHANNEL_INVITE_LINK }]);  
   buttons.push([{ text: `${SUPPORT_BOT_TITILE}`, url: SUPPORT_BOT_LINK }]);  
-  buttons.push([{ text: `${ADD_CHANNEL_TITLE}`, url: ADD_CHANNEL_LINK }]);
   buttons.push([{ text: '✅ Obuna bo‘ldim', callback_data: 'check_subscription' }]);
 
   return {
