@@ -112,8 +112,11 @@ async function getSubscriptionMessage() {
   const PERSONAL_CHANNEL_TITLE = 'Tegib ketdimi ؟';  
   const SUPPORT_BOT_LINK = 'https://t.me/TurfaSeenBot?start=user19';
   const SUPPORT_BOT_TITILE = 'Turfa Seen | Rasmiy🤖';
+  const ADD_CHANNEL_LINK = 'https://t.me/+fFrW_W_6SXlmOTcy';
+  const ADD_CHANNEL_TITLE = 'نافع 🦢';
   buttons.push([{ text: `${PERSONAL_CHANNEL_TITLE}`, url: PERSONAL_CHANNEL_INVITE_LINK }]);  
   buttons.push([{ text: `${SUPPORT_BOT_TITILE}`, url: SUPPORT_BOT_LINK }]);  
+  buttons.push([{ text: `${ADD_CHANNEL_TITLE}`, url: ADD_CHANNEL_LINK }]);
   buttons.push([{ text: '✅ Obuna bo‘ldim', callback_data: 'check_subscription' }]);
 
   return {
@@ -226,6 +229,9 @@ const onlineSimSites = [
      'https://sms24.me',
      'https://sms24.me/en/countries/de',
      'https://sms24.me/en/countries/kr',
+     'https://sms24.me/en/countries/kr/2',
+     'https://sms24.me/en/countries/kr/3',
+     'https://sms24.me/en/countries/kr/4',
      'https://sms24.me/en/countries/uz',
      'https://sms24.me/en/countries/usa',
      'https://sms24.me/en/countries/us/2',
@@ -637,9 +643,9 @@ if (data === 'get_number') {
     });
   }
 
-  if (user.referalCount < 5) {
+  if (user.referalCount < 6) {
     return bot.answerCallbackQuery(callbackQuery.id, {
-      text: '🚫 Raqam olish uchun kamida 5 ta referalingiz bo‘lishi kerak.',
+      text: '🚫 Raqam olish uchun kamida 6 ta referalingiz bo‘lishi kerak.',
       show_alert: true
     });
   }
@@ -862,7 +868,7 @@ if (data.startsWith('select_number_')) {
     `<b>📞 Siz <code>${selected.phone}</code> raqamini tanladingiz.</b>
 <blockquote>
 <b><i>
-❗️ Ushbu raqamni ishlatish uchun 5 ta referalingiz kamaytiriladi.
+❗️ Ushbu raqamni ishlatish uchun 6 ta referalingiz kamaytiriladi.
 
 ⚠️ Diqqat! Bu raqam ommaviy tarzda foydalaniladi. Quyidagi holatlar bo‘lishi mumkin:
 
@@ -897,7 +903,7 @@ if (data.startsWith('select_number_')) {
       text: '❌ Raqam topilmadi.'
     });
   }
-  const decremented = await decrementReferals(userId, 5);  // <-- 5 dan 10 ga o'zgartirdim
+  const decremented = await decrementReferals(userId, 6);  // <-- 5 dan 10 ga o'zgartirdim
   if (!decremented) {
     return bot.answerCallbackQuery(callbackQuery.id, {
       text: '🚫 Yetarli referal yo‘q.'  // <-- Bu yerda ham 10 ta tekshiruvi bor (decrementReferals ichida)
@@ -905,7 +911,7 @@ if (data.startsWith('select_number_')) {
   }
   await bot.answerCallbackQuery(callbackQuery.id);
   return bot.editMessageText(
-    `<b>📞 Siz tanlagan raqam: <code>${selected.phone}</code></b>\n<i>👉 Endi “SMS olish” tugmasini bosing.</i>\n\n<u>5 daqiqa ichida xabar kelmasa sizga xabar beramiz..</u>`,
+    `<b>📞 Siz tanlagan raqam: <code>${selected.phone}</code></b>\n<i>👉 Endi “SMS olish” tugmasini bosing.</i>\n\n<u>10 daqiqa ichida xabar kelmasa sizga xabar beramiz..</u>`,
     {
       chat_id: chatId,
       message_id: msg.message_id,
@@ -933,7 +939,7 @@ if (data === 'get_sms_now') {
   });
 
   const startTime = Date.now();
-  const waitTime = 5 * 60 * 1000; 
+  const waitTime = 10 * 60 * 1000; 
   const checkInterval = 15 * 1000; 
 
   async function pollMessages() {
